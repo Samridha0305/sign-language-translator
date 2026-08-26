@@ -1,3 +1,35 @@
+"""
+preprocess_dataset.py
+
+Combines every recorded .npy sample under data/raw/ into training-ready
+arrays: normalizes landmarks, encodes labels, and splits into
+train/val/test.
+
+USAGE:
+    python preprocess_dataset.py
+
+OUTPUT (in data/processed/):
+    X_train.npy, y_train.npy
+    X_val.npy,   y_val.npy
+    X_test.npy,  y_test.npy
+    labels.json   -> {"label_to_index": {...}, "index_to_label": {...}}
+
+SPLIT LOGIC:
+    If more than one participant exists under data/raw/, splits BY
+    PARTICIPANT (held-out signer test set) -- the credible split from
+    the roadmap.
+    If only one participant exists (e.g. just p01 so far), falls back to
+    a random 70/15/15 split, and prints a warning that this is a
+    temporary measure until more participants are added.
+
+NORMALIZATION (per hand, per frame):
+    1. Translate: subtract the wrist position, so the hand is
+       position-independent (doesn't matter where in the frame it is).
+    2. Scale: divide by the wrist-to-middle-finger-MCP distance, so hand
+       size / distance from camera doesn't matter.
+    A hand that wasn't detected (all zeros) is left as all zeros.
+"""
+
 import json
 import os
 
@@ -78,26 +110,34 @@ def random_split(n, train_frac=0.7, val_frac=0.15, seed=42):
     return train_idx, val_idx, test_idx
 
 
-def participant_split(participants):
-    """Holds out the LAST participant (alphabetically) entirely for test,
-    and the second-to-last for validation. Everyone else is train."""
+def participant_split(participants, seed=42):
+    """Holds out the LAST participant (alphabetically) entirely for test.
+    With 3+ participants, also holds out the second-to-last entirely for
+    validation. With exactly 2 participants, there's no third person to
+    give validation, so instead we carve a random 15% slice OUT OF THE
+    TRAINING participant(s) for validation -- p02 (test) stays fully
+    untouched either way, so your test accuracy is still a genuine
+    unseen-person number."""
     unique_participants = sorted(set(participants))
-    if len(unique_participants) < 3:
-        # not enough people for a 3-way person split; hold out just the last
-        # one for test, and carve a random slice of the rest for val
-        test_people = {unique_participants[-1]}
-        remaining = [p for p in unique_participants if p not in test_people]
-        val_people = {remaining[-1]} if len(remaining) > 1 else set()
-    else:
-        test_people = {unique_participants[-1]}
-        val_people = {unique_participants[-2]}
-
     participants = np.array(participants)
+    test_people = {unique_participants[-1]}
     test_idx = np.where(np.isin(participants, list(test_people)))[0]
-    val_idx = np.where(np.isin(participants, list(val_people)))[0]
-    train_idx = np.where(
-        ~np.isin(participants, list(test_people) + list(val_people))
-    )[0]
+
+    if len(unique_participants) >= 3:
+        val_people = {unique_participants[-2]}
+        val_idx = np.where(np.isin(participants, list(val_people)))[0]
+        train_idx = np.where(
+            ~np.isin(participants, list(test_people) + list(val_people))
+        )[0]
+    else:
+        val_people = set()  # no dedicated val participant
+        train_people_idx = np.where(~np.isin(participants, list(test_people)))[0]
+        rng = np.random.default_rng(seed)
+        shuffled = rng.permutation(train_people_idx)
+        val_cut = int(len(shuffled) * 0.15)
+        val_idx = shuffled[:val_cut]
+        train_idx = shuffled[val_cut:]
+
     return train_idx, val_idx, test_idx, test_people, val_people
 
 
@@ -115,8 +155,15 @@ def main():
     unique_participants = sorted(set(participants))
     if len(unique_participants) > 1:
         train_idx, val_idx, test_idx, test_people, val_people = participant_split(participants)
-        print(f"Splitting BY PARTICIPANT. Test person(s): {test_people}, "
-              f"Val person(s): {val_people}")
+        if val_people:
+            print(f"Splitting BY PARTICIPANT. Test person(s): {test_people}, "
+                  f"Val person(s): {val_people}")
+        else:
+            print(f"Splitting BY PARTICIPANT. Test person(s): {test_people} "
+                  f"(fully held out). Only 2 participants total, so validation "
+                  f"is a random 15% slice carved out of the remaining training "
+                  f"participant(s) -- not a separate person, but the test set "
+                  f"above is still untouched and unseen.")
     else:
         print("WARNING: only one participant found -- using a random "
               "70/15/15 split for now. This does NOT test generalization "

@@ -38,6 +38,7 @@ ipython_pygments_lexers==1.1.1
 itsdangerous==2.2.0
 jedi==0.20.0
 Jinja2==3.1.6
+joblib==1.5.3
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 jupyter_client==8.9.1
@@ -103,6 +104,8 @@ referencing==0.37.0
 requests==2.32.5
 rich==15.0.0
 rpds-py==0.30.0
+scikit-learn==1.9.0
+scipy==1.18.1
 setuptools==80.9.0
 six==1.17.0
 smmap==5.0.3
@@ -115,6 +118,7 @@ streamlit==1.57.0
 tenacity==9.1.4
 tensorflow==2.21.0
 termcolor==3.3.0
+threadpoolctl==3.6.0
 toml==0.10.2
 tornado==6.5.8
 traitlets==5.16.1
