@@ -8,10 +8,6 @@ sequence model (GRU), with both a local app and a browser-based frontend.
 > **Scope note:** this is a sign *recognition* system for a fixed 10-word
 > vocabulary, not a general-purpose ISL translator.
 
-## Demo
-
-<!-- Add your screen-recorded GIF/video here, e.g.: -->
-<!-- ![demo](reports/figures/demo.gif) -->
 
 ## How it works
 
@@ -32,9 +28,13 @@ Webcam → MediaPipe hand landmarks → normalize → 40-frame buffer
 - **Smoothing + confidence filtering:** a sign is only "confirmed" once
   several consecutive frames agree above an 80% confidence threshold,
   preventing flickering or low-confidence guesses.
-- **Two interfaces:** a local OpenCV app (`app/live_app.py`) and a
-  browser-based Streamlit app (`app/app_streamlit.py`) using
-  `streamlit-webrtc`, both sharing the same detection/model/smoothing logic.
+- **Two interfaces:** a local OpenCV app (`app/live_app.py`) — the primary,
+  recommended way to run this — and a browser-based Streamlit app
+  (`app/app_streamlit.py`) using `streamlit-webrtc`, both sharing the same
+  detection/model/smoothing logic. The Streamlit version works correctly
+  but is noticeably more CPU-intensive (it runs hand detection, model
+  inference, and WebRTC video encoding/decoding concurrently), so on
+  CPU-only hardware it can feel less smooth than the local app.
 
 ## Vocabulary
 
@@ -126,9 +126,11 @@ python src/preprocessing/preprocess_dataset.py
 # 4. Train the model
 python src/models/train.py
 
-# 5. Run the live app -- either:
+# 5. Run the live app -- live_app.py is recommended (smoothest experience):
 python app/live_app.py
-# or, for the browser version:
+
+# Or, for the browser version (functional, but more CPU-intensive --
+# see Limitations below):
 streamlit run app/app_streamlit.py
 ```
 
@@ -145,6 +147,12 @@ streamlit run app/app_streamlit.py
   servers have no audio hardware, so the speech feature (a core part of the
   demo) would silently fail if hosted online. It's designed to be run
   locally, where speech output works correctly.
+- The Streamlit/WebRTC interface is CPU-intensive (concurrent hand
+  detection, model inference, and video encoding) and can run noticeably
+  less smoothly than `live_app.py` on CPU-only hardware. `live_app.py` is
+  the recommended interface for the best real-time experience; the
+  Streamlit app is included to demonstrate a browser-based frontend, with
+  this performance trade-off documented rather than hidden.
 
 ## Future improvements
 
