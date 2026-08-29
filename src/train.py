@@ -1,27 +1,4 @@
-"""
-train.py
 
-Trains a GRU sequence classifier on the preprocessed landmark data,
-evaluates on the held-out test set, and saves a confusion matrix.
-
-REQUIRES (in addition to earlier packages):
-    pip install scikit-learn matplotlib
-
-USAGE:
-    python train.py
-
-INPUT (from data/processed/, created by preprocess_dataset.py):
-    X_train.npy, y_train.npy
-    X_val.npy,   y_val.npy
-    X_test.npy,  y_test.npy
-    labels.json
-
-OUTPUT:
-    models/best_model.keras         -> the best model found during training
-    reports/confusion_matrix.png    -> visual confusion matrix on the test set
-    reports/training_history.png    -> accuracy/loss curves over training
-    Prints final test accuracy and a per-class precision/recall report.
-"""
 
 import json
 import os

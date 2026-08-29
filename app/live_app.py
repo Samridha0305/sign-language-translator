@@ -30,11 +30,7 @@ PREDICT_EVERY_N_FRAMES = 2
 
  
 class Speaker:
-    """Runs pyttsx3 on ONE persistent background thread, fed by a queue.
-    pyttsx3's Windows speech engine misbehaves if you call it from a new
-    thread each time (it works once, then goes silent) -- so every
-    utterance is pushed onto a queue and spoken sequentially on the same
-    dedicated thread instead."""
+
  
     def __init__(self):
         self.queue = queue.Queue()
